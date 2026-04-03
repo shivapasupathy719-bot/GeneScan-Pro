@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=GeneScan Pro
+Comment=Advanced Biomedical Analysis System
+Exec=/bin/bash /home/pi/genescan-pro/pi-kiosk.sh
+Icon=/home/pi/genescan-pro/assets/logo.png
+Terminal=false
+Type=Application
+Categories=Science;Education;
+StartupNotify=true

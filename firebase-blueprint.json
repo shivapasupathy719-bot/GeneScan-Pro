@@ -1,0 +1,108 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email", "description": "User's email address" },
+        "displayName": { "type": "string", "description": "User's display name" },
+        "photoURL": { "type": "string", "description": "User's photo URL" },
+        "role": { "type": "string", "enum": ["admin", "staff", "guest"], "description": "User's role in the system" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the user was created" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Patient": {
+      "title": "Patient",
+      "description": "Patient medical record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Patient ID" },
+        "userId": { "type": "string", "description": "UID of the staff member who created the record" },
+        "name": { "type": "string", "description": "Patient's full name" },
+        "age": { "type": "integer", "description": "Patient's age" },
+        "sex": { "type": "string", "enum": ["M", "F", "Other"], "description": "Patient's sex" },
+        "lastScan": { "type": "string", "format": "date-time", "description": "Timestamp of the last scan" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the record was created" }
+      },
+      "required": ["name", "age", "sex", "userId"]
+    },
+    "Scan": {
+      "title": "Scan",
+      "description": "Genetic scan result",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Scan ID" },
+        "userId": { "type": "string", "description": "UID of the staff member who performed the scan" },
+        "patientId": { "type": "string", "description": "ID of the patient" },
+        "patientName": { "type": "string", "description": "Name of the patient at time of scan" },
+        "patientAge": { "type": "integer", "description": "Age of the patient at time of scan" },
+        "patientSex": { "type": "string", "description": "Sex of the patient at time of scan" },
+        "scanName": { "type": "string", "description": "Custom name for the scan" },
+        "diseaseName": { "type": "string", "description": "Name of the disease analyzed" },
+        "severity": { "type": "string", "enum": ["Low", "Moderate", "High", "Critical"] },
+        "probability": { "type": "number", "description": "Calculated probability" },
+        "confidenceScore": { "type": "number", "description": "AI confidence score" },
+        "clinicalNotes": { "type": "string", "description": "AI-generated clinical notes" },
+        "morphologySummary": { "type": "string", "description": "AI-generated morphology summary" },
+        "visualData": { "type": "object", "description": "Visual analysis data" },
+        "stats": { "type": "object", "description": "Cell count statistics" },
+        "geneticMarkers": { "type": "array", "items": { "type": "string" } },
+        "geneSequences": { "type": "array", "items": { "type": "object" } },
+        "parameters": { "type": "array", "items": { "type": "object" } },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the scan was performed" }
+      },
+      "required": ["userId", "patientId", "diseaseName", "probability", "severity", "createdAt"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "System audit trail",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "UID of the user who performed the action" },
+        "action": { "type": "string", "description": "The action performed" },
+        "details": { "type": "string", "description": "Additional details about the action" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "When the action occurred" }
+      },
+      "required": ["userId", "action", "timestamp"]
+    },
+    "TrainingCase": {
+      "title": "TrainingCase",
+      "description": "Verified case for AI training",
+      "type": "object",
+      "properties": {
+        "description": { "type": "string", "description": "Clinical description of the case" },
+        "correctDiagnosis": { "type": "string", "description": "The verified diagnosis" },
+        "biometrics": { "type": "object", "description": "Patient biometrics" },
+        "notes": { "type": "string", "description": "Additional teaching notes" },
+        "createdBy": { "type": "string", "description": "UID of the user who added the case" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the case was added" }
+      },
+      "required": ["description", "correctDiagnosis", "createdBy", "createdAt"]
+    }
+  },
+  "firestore": {
+    "users/{uid}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "patients/{patientId}": {
+      "schema": "Patient",
+      "description": "Patient records"
+    },
+    "scans/{scanId}": {
+      "schema": "Scan",
+      "description": "Scan history"
+    },
+    "audit_logs/{logId}": {
+      "schema": "AuditLog",
+      "description": "System audit trail"
+    },
+    "training_data/{caseId}": {
+      "schema": "TrainingCase",
+      "description": "AI training dataset"
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "name": "genescan-pro-(final)",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "ng serve --host 0.0.0.0 --port 3000",
+    "dev": "ng serve --host 0.0.0.0 --port 3000",
+    "build": "ng build",
+    "serve:prod": "npx serve -s dist -p 3000",
+    "lint": "ng lint"
+  },
+  "dependencies": {
+    "@angular/build": "^21.2.0",
+    "@angular/cdk": "^21.2.2",
+    "@angular/cli": "^21.2.0",
+    "@angular/common": "^21.2.0",
+    "@angular/compiler": "^21.2.0",
+    "@angular/compiler-cli": "^21.2.0",
+    "@angular/core": "^21.2.0",
+    "@angular/forms": "^21.2.0",
+    "@angular/material": "^21.2.2",
+    "@angular/platform-browser": "^21.2.0",
+    "@google/genai": "^1.36.0",
+    "@tailwindcss/postcss": "^4.2.1",
+    "@types/d3": "^7.4.3",
+    "d3": "^7.9.0",
+    "firebase": "^12.11.0",
+    "postcss": "^8.5.8",
+    "qrcode": "^1.5.4",
+    "rxjs": "^7.8.2",
+    "tailwindcss": "latest"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.14.0",
+    "@types/qrcode": "^1.5.6",
+    "angular-eslint": "21.3.0",
+    "eslint": "^10.0.2",
+    "typescript": "~5.9.2",
+    "typescript-eslint": "8.56.1",
+    "vite": "^6.2.0"
+  }
+}

@@ -1,0 +1,202 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {uid}
+    // Fields:
+    //   - uid: string (required) - Firebase Auth UID
+    //   - email: string (required, email format) - User's email address
+    //   - displayName: string (optional) - User's display name
+    //   - photoURL: string (optional) - User's photo URL
+    //   - role: string (required, enum: ['admin', 'staff', 'guest']) - User's role
+    //   - createdAt: timestamp (optional) - When the user was created
+    //
+    // Collection: patients
+    // Document ID: {patientId}
+    // Fields:
+    //   - id: string (optional) - Patient ID
+    //   - userId: string (required) - UID of the staff member who created the record
+    //   - name: string (required, size < 100) - Patient's full name
+    //   - age: number (required, 0-150) - Patient's age
+    //   - sex: string (required, enum: ['M', 'F', 'Other']) - Patient's sex
+    //   - lastScan: timestamp (optional) - Timestamp of the last scan
+    //   - createdAt: timestamp (required) - When the record was created
+    //
+    // Collection: scans
+    // Document ID: {scanId}
+    // Fields:
+    //   - id: string (optional) - Scan ID
+    //   - userId: string (required) - UID of the staff member who performed the scan
+    //   - patientId: string (required) - ID of the patient
+    //   - patientName: string (optional) - Name of the patient
+    //   - patientAge: number (optional) - Age of the patient
+    //   - patientSex: string (optional) - Sex of the patient
+    //   - scanName: string (optional) - Custom name for the scan
+    //   - diseaseName: string (required, size < 100) - Name of the disease analyzed
+    //   - severity: string (required, enum: ['Low', 'Moderate', 'High', 'Critical']) - Severity
+    //   - probability: number (required, 0-100) - Calculated probability
+    //   - confidenceScore: number (optional, 0-100) - AI confidence score
+    //   - clinicalNotes: string (optional, size < 5000) - AI-generated clinical notes
+    //   - morphologySummary: string (optional, size < 5000) - AI-generated morphology summary
+    //   - visualData: map (optional) - Visual analysis data
+    //   - stats: map (optional) - Cell count statistics
+    //   - geneticMarkers: list (optional) - List of genetic markers
+    //   - geneSequences: list (optional) - List of gene sequences
+    //   - parameters: list (optional) - List of blood parameters
+    //   - createdAt: timestamp (required) - When the scan was performed
+    //
+    // Collection: audit_logs
+    // Document ID: {logId}
+    // Fields:
+    //   - userId: string (required) - UID of the user who performed the action
+    //   - action: string (required, size < 100) - The action performed
+    //   - details: string (optional, size < 1000) - Additional details
+    //   - timestamp: timestamp (required) - When the action occurred
+    //
+    // Collection: training_data
+    // Document ID: {caseId}
+    // Fields:
+    //   - description: string (required, size < 5000) - Clinical description
+    //   - correctDiagnosis: string (required, size < 100) - Verified diagnosis
+    //   - biometrics: map (optional) - Patient biometrics
+    //   - notes: string (optional, size < 2000) - Teaching notes
+    //   - createdBy: string (required) - UID of the user who added the case
+    //   - createdAt: timestamp (required) - When the case was added
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      return isAuthenticated() &&
+        ((exists(userPath) && get(userPath).data.role == 'admin') ||
+          (request.auth.token.email in ["shivapasupathy719@gmail.com", "shiva.pm1947@gmail.com", "shiva.pm1947@gmail.com"] && request.auth.token.email_verified == true));
+    }
+
+    function isStaff() {
+      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      return isAuthenticated() &&
+        ((exists(userPath) && get(userPath).data.role in ['admin', 'staff']) ||
+         (request.auth.token.email in ["shivapasupathy719@gmail.com", "shiva.pm1947@gmail.com", "shiva.pm1947@gmail.com"] && request.auth.token.email_verified == true));
+    }
+
+    function isValidEmail(email) {
+      return email is string &&
+        email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return data.uid is string && data.uid == request.auth.uid &&
+             data.email is string && isValidEmail(data.email) &&
+             data.role in ['admin', 'staff', 'guest'] &&
+             (data.displayName == null || (data.displayName is string && data.displayName.size() < 100)) &&
+             (data.photoURL == null || (data.photoURL is string && data.photoURL.size() < 500));
+    }
+
+    function isValidPatient(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.age is number && data.age >= 0 && data.age <= 150 &&
+             data.sex in ['M', 'F', 'Other', 'Male', 'Female', 'Unknown'] &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidScan(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.patientId is string &&
+             data.diseaseName is string && data.diseaseName.size() < 100 &&
+             data.severity in ['Low', 'Moderate', 'High', 'Critical'] &&
+             data.probability is number && data.probability >= 0 && data.probability <= 100 &&
+             (data.clinicalNotes == null || (data.clinicalNotes is string && data.clinicalNotes.size() < 5000)) &&
+             (data.morphologySummary == null || (data.morphologySummary is string && data.morphologySummary.size() < 5000)) &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidAuditLog(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.action is string && data.action.size() < 100 &&
+             data.timestamp is timestamp;
+    }
+
+    function isValidTrainingCase(data) {
+      return data.createdBy is string && data.createdBy == request.auth.uid &&
+             data.description is string && data.description.size() > 0 && data.description.size() < 5000 &&
+             data.correctDiagnosis is string && data.correctDiagnosis.size() > 0 && data.correctDiagnosis.size() < 100 &&
+             data.createdAt is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && 
+                      (request.resource.data.role == 'guest' || isAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && 
+                      (isOwner(uid) && request.resource.data.role == resource.data.role || isAdmin());
+    }
+
+    match /patients/{patientId} {
+      allow read: if isStaff();
+      allow create: if isStaff() && isValidPatient(request.resource.data);
+      allow update: if isStaff() && isValidPatient(request.resource.data) && 
+                      (request.resource.data.userId == resource.data.userId || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /scans/{scanId} {
+      allow read: if isStaff();
+      allow create: if isStaff() && isValidScan(request.resource.data);
+      allow update: if isStaff() && isValidScan(request.resource.data) && 
+                      (request.resource.data.userId == resource.data.userId || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /audit_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated() && isValidAuditLog(request.resource.data);
+      allow update, delete: if false;
+    }
+
+    match /training_data/{caseId} {
+      allow read: if isStaff();
+      allow create: if isStaff() && isValidTrainingCase(request.resource.data);
+      allow update: if isStaff() && isValidTrainingCase(request.resource.data) && 
+                      (request.resource.data.createdBy == resource.data.createdBy || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

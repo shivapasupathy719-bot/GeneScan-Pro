@@ -1,0 +1,17 @@
+{
+  "name": "GeneScan Pro - BioAnalysis",
+  "short_name": "GeneScan",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0B1221",
+  "theme_color": "#0B1221",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "assets/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ]
+}
